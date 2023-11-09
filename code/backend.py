@@ -1,8 +1,10 @@
-import g4f
+from openai import OpenAI
 import tiktoken
 import json
 import pandas as pd
 import re
+
+client = OpenAI(api_key="sk-...", base_url="https://neuroapi.host/v1")
 
 max_response_tokens = 1024
 token_limit = 16000
@@ -24,14 +26,32 @@ def num_tokens_from_messages(messages):
 def response(message, conversation, journal):
     if message != "":
         conversation.append({"role": "user", "content": message})
+
+    # Using journal
     if re.match(r"Используя предмет \".+\",", message):
         item_name = re.search(r"Используя предмет \"(.+)\",", message).group(1)
         for item in journal["items"]:
             if item["item"] == item_name:
-                conversation.append({"role": "system", "content": f"Предмет: {item['item']['name']}. Описание: {item['item']['description']}"})
+                conversation.append({"role": "system", "content": f"Предмет: {item['item']}. Описание: {item['description']}"})
                 break
         else:
             conversation.append({"role": "system", "content": "Предмета нет в инвентаре."})
+    elif re.match(r"Обращаясь к персонажу \".+\",", message):
+        character_name = re.search(r"Обращаясь к персонажу \"(.+)\",", message).group(1)
+        for character in journal["characters"]:
+            if character["character"] == character_name:
+                conversation.append({"role": "system", "content": f"Персонаж: {character['character']}. Описание: {character['description']}"})
+                break
+        else:
+            conversation.append({"role": "system", "content": "Персонаж неизвестен."})
+    elif re.match(r"Посетить локацию \".+\"", message):
+        location_name = re.search(r"Посетить локацию \"(.+)\"", message).group(1)
+        for location in journal["locations"]:
+            if location["location"] == location_name:
+                conversation.append({"role": "system", "content": f"Локация: {location['location']}. Описание: {location['description']}"})
+                break
+        else:
+            conversation.append({"role": "system", "content": "Локация неизвестна."})
 
     # Remove old messages if token limit is reached
     conv_history_tokens = num_tokens_from_messages(conversation)
@@ -39,26 +59,30 @@ def response(message, conversation, journal):
         del conversation[1] 
         conv_history_tokens = num_tokens_from_messages(conversation)
 
-    answer = g4f.ChatCompletion.create(
-        model=g4f.models.gpt_35_turbo_16k_0613,
-        #provider=g4f.Provider.NeuroGPT,
-        messages=conversation,
-        stream=False,
+    answer = client.chat.completions.create(
+        model="gpt-3.5-turbo-16k-0613",
+        messages=conversation
     )
 
-    conversation.append({"role": "assistant", "content": answer})
-    return answer
+    conversation.append({"role": "assistant", "content": answer.choices[0].message.content})
+    return answer.choices[0].message.content
 
 # Analyze message
-def analyze(message):
-    answer = g4f.ChatCompletion.create(
-        model=g4f.models.gpt_35_turbo_16k_0613,
-        #provider=g4f.Provider.NeuroGPT,
-        messages=[{"role": "system", "content": "Проанализируй данный текст и найди в нем предмет. Если здесь нет предмета, то напиши 'None'. Если предмет найден, то напиши в формате \{\"name\": \"Название предмета\", \"description\": \"Описание предмета\"\}"},
-                  {"role": "user", "content": message}],
+def analyze(prompts, item=None, character=None, location=None, quest=None):
+    if item:
+        prompt = prompts["item"] + f"Найди предмет {item}"
+    elif character:
+        prompt = prompts["character"] + f"Найди персонажа {character}"
+    elif location:
+        prompt = prompts["location"]
+    elif quest:
+        prompt = prompts["quest"]
+    answer = client.chat.completions.create(
+        model="gpt-3.5-turbo-16k-0613",
+        messages=[{"role": "system", "content": prompt + "\n"}],
         stream=False,
     )
-    answer = json.loads(answer)
+    answer = json.loads(answer.choices[0].message.content)
     return answer
 
 def retry(conversation, journal):
