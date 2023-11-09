@@ -67,23 +67,19 @@ def response(message, conversation, journal):
     return answer.choices[0].message.content
 
 # Analyze message
-def analyze(prompts, message, item=None, character=None, location=None, quest=None):
+def analyze(prompts, item=None, character=None, location=None, quest=None):
     if item:
-        prompt = [{"role": "system", "content": prompts["item"]},
-                  {"role": "user", "content": message + f"Найди предмет \"{item}\""}]
+        prompt = prompts["item"] + f"Найди предмет {item}"
     elif character:
-        prompt = [{"role": "system", "content": prompts["character"]},
-                  {"role": "user", "content": message + f"Найди персонажа \"{character}\""}]
+        prompt = prompts["character"] + f"Найди персонажа {character}"
     elif location:
-        prompt = [{"role": "system", "content": prompts["location"]},
-                  {"role": "user", "content": message}]
+        prompt = prompts["location"]
     elif quest:
-        prompt = [{"role": "system", "content": prompts["quest"]},
-                  {"role": "user", "content": message}]
-    print(prompt)
+        prompt = prompts["quest"]
     answer = client.chat.completions.create(
         model="gpt-3.5-turbo-16k-0613",
-        messages=prompt,
+        messages=[{"role": "system", "content": prompt + "\n"}],
+        stream=False,
     )
     answer = json.loads(answer.choices[0].message.content)
     return answer

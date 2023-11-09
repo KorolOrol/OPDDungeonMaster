@@ -2,13 +2,15 @@ import gradio as gr
 import json
 from backend import *
 
-with open("code\prompts.txt", 'r', encoding='utf-8') as f:
+with open("prompts.txt", 'r', encoding='utf-8') as f:
     prompts = json.load(f)
 
 conversation = [{"role": "system", "content": prompts["story"]}]
 
 journal = {"items": [],
-           "characters": [],
+           "characters": [
+               {"character": "Мария", "description": "Мария - девушка, которая живет в доме напротив. Она очень любит цветы."}
+           ],
            "locations": [],
            "quests": [],
            }
@@ -16,7 +18,7 @@ journal = {"items": [],
 def chat_response(message, history):
     if re.match(r"Положить предмет \".+\" в инвентарь", message):
         item_name = re.search(r"Положить предмет \"(.+)\" в инвентарь", message).group(1)
-        found_item = analyze(prompts, conversation[-1]["content"], item=item_name)
+        found_item = analyze(prompts, item=item_name)
         if found_item != None:
             journal["items"].append(found_item)
             return f"Получен предмет: {found_item['item']}"
@@ -24,21 +26,21 @@ def chat_response(message, history):
             return "Предмет не найден."
     elif re.match(r"Запомнить персонажа \".+\"", message):
         character_name = re.search(r"Запомнить персонажа \"(.+)\"", message).group(1)
-        found_character = analyze(prompts, conversation[-1]["content"], character=character_name)
+        found_character = analyze(prompts, character=character_name)
         if found_character != None:
             journal["characters"].append(found_character)
             return f"Персонаж записан в журнал: {found_character['character']}"
         else:
             return "Персонаж не найден."
     elif re.match(r"Записать локацию на карту", message):
-        found_location = analyze(prompts, conversation[-1]["content"], location=True)
+        found_location = analyze(prompts, location=True)
         if found_location != None:
             journal["locations"].append(found_location)
             return f"Локация добавлена на карту: {found_location['location']}"
         else:
             return "Локация не найдена."
     elif re.match(r"Записать задание в журнал", message):
-        found_quest = analyze(prompts, conversation[-1]["content"], quest=True)
+        found_quest = analyze(prompts, quest=True)
         if found_quest != None:
             journal["quests"].append(found_quest)
             return f"Задание добавлено в журнал: {found_quest['quest']}"
@@ -48,32 +50,7 @@ def chat_response(message, history):
 
 def chat_retry():
     if conversation[-1]["role"] == "assistant":
-        response = conversation[-1]
         del conversation[-1]
-        if re.match(r"Получен предмет: \".+\"", response["content"]):
-            item_name = re.search(r"Получен предмет: \"(.+)\"", response["content"]).group(1)
-            for item in journal["items"]:
-                if item["item"] == item_name:
-                    journal["items"].remove(item)
-                    break
-        elif re.match(r"Персонаж записан в журнал: \".+\"", response["content"]):
-            character_name = re.search(r"Персонаж записан в журнал: \"(.+)\"", response["content"]).group(1)
-            for character in journal["characters"]:
-                if character["character"] == character_name:
-                    journal["characters"].remove(character)
-                    break
-        elif re.match(r"Локация добавлена на карту: \".+\"", response["content"]):
-            location_name = re.search(r"Локация добавлена на карту: \"(.+)\"", response["content"]).group(1)
-            for location in journal["locations"]:
-                if location["location"] == location_name:
-                    journal["locations"].remove(location)
-                    break
-        elif re.match(r"Задание добавлено в журнал: \".+\"", response["content"]):
-            quest_name = re.search(r"Задание добавлено в журнал: \"(.+)\"", response["content"]).group(1)
-            for quest in journal["quests"]:
-                if quest["quest"] == quest_name:
-                    journal["quests"].remove(quest)
-                    break
     message = conversation.pop()["content"]
     return message
 
@@ -111,15 +88,15 @@ with gr.Blocks() as webui:
         with gr.Column(variant="panel"):
             gr.Markdown("# Журнал")
             with gr.Tab("Предметы", id="items_tab"):
-                gr.Markdown('''Чтобы положить предмет в инвентарь, напишите: _Положить предмет "**Название предмета**" в инвентарь_\n
+                gr.Markdown('''Чтобы положить предмет в инвентарь, напишите: _Положить предмет "**Название предмета**" в инвентарь_
                             Для использования предмета в начале сообщения напишите: _Используя предмет "**Название предмета**",_''')
                 items = gr.Markdown()
             with gr.Tab("Персонажи", id="characters_tab"):
-                gr.Markdown('''Чтобы запомнить персонажа, напишите: _Запомнить персонажа "**Имя персонажа**"_\n
+                gr.Markdown('''Чтобы запомнить персонажа, напишите: _Запомнить персонажа "**Имя персонажа**"_
                             Для обращения к персонажу в начале сообщения напишите: _Обращаясь к персонажу "**Имя персонажа**",_''')
                 characters = gr.Markdown()
             with gr.Tab("Локации", id="locations_tab"):
-                gr.Markdown('''Чтобы добавить локацию на карту, напишите: _Записать локацию на карту_\n
+                gr.Markdown('''Чтобы добавить локацию на карту, напишите: _Записать локацию на карту_
                             Для посещения локации в начале сообщения напишите: _Посетить локацию "**Название локации**"_''')
                 locations = gr.Markdown()
             with gr.Tab("Задания", id="actions_tab"):
@@ -129,5 +106,7 @@ with gr.Blocks() as webui:
         chat.undo_btn.click(chat_undo)
         chat.clear_btn.click(chat_clear)
         update_btn.click(update_journal, outputs=[items, characters, locations, quests])
+    
+    
 webui.launch()
     
