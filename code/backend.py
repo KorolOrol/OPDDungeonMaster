@@ -67,20 +67,15 @@ def response(message, conversation, journal):
     return answer.choices[0].message.content
 
 # Analyze message
-def analyze(prompts, message, item=None, character=None, location=None, quest=None):
+def analyze(prompts, conversation, item=None, character=None, location=None, quest=None):
     if item:
-        prompt = [{"role": "system", "content": prompts["item"]},
-                  {"role": "user", "content": message + f"Найди предмет \"{item}\""}]
+        prompt = [{"role": "system", "content": prompts["item"]}] + conversation[-2:] + [{"role": "system", "content": f"Найди предмет \"{item}\""}]
     elif character:
-        prompt = [{"role": "system", "content": prompts["character"]},
-                  {"role": "user", "content": message + f"Найди персонажа \"{character}\""}]
+        prompt = [{"role": "system", "content": prompts["character"]}] + conversation[-2:] + [{"role": "system", "content": f"Найди персонажа \"{character}\""}]
     elif location:
-        prompt = [{"role": "system", "content": prompts["location"]},
-                  {"role": "user", "content": message}]
+        prompt = [{"role": "system", "content": prompts["location"]}] + conversation[-2:]
     elif quest:
-        prompt = [{"role": "system", "content": prompts["quest"]},
-                  {"role": "user", "content": message}]
-    print(prompt)
+        prompt = [{"role": "system", "content": prompts["quest"]}] + conversation[-2:]
     answer = client.chat.completions.create(
         model="gpt-3.5-turbo-16k-0613",
         messages=prompt,
