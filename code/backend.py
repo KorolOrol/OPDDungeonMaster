@@ -3,9 +3,9 @@ import tiktoken
 import json
 import re
 
-client = OpenAI(api_key="sk-...", base_url="https://neuroapi.host/v1")
+client = OpenAI(api_key="sk-R27zNuoLjUuzhLMCEcA9FdCfC9A64eD096E511B8D27a44Ce", base_url="https://neuroapi.host/v1")
 
-max_response_tokens = 1024
+max_response_tokens = 2048
 token_limit = 16000
 
 # Count tokens
@@ -59,12 +59,13 @@ def response(message, conversation, journal):
         conv_history_tokens = num_tokens_from_messages(conversation)
 
     answer = client.chat.completions.create(
-        model="gpt-3.5-turbo-16k-0613",
-        messages=conversation
+        model="gpt-4-1106-preview",
+        messages=conversation,
+        stream=True,
+        max_tokens=max_response_tokens
     )
 
-    conversation.append({"role": "assistant", "content": answer.choices[0].message.content})
-    return answer.choices[0].message.content
+    return answer
 
 # Analyze message
 def analyze(prompts, conversation, item=None, character=None, location=None, quest=None):
@@ -77,7 +78,7 @@ def analyze(prompts, conversation, item=None, character=None, location=None, que
     elif quest:
         prompt = [{"role": "system", "content": prompts["quest"]}] + conversation[-2:]
     answer = client.chat.completions.create(
-        model="gpt-3.5-turbo-16k-0613",
+        model="gpt-4-1106-preview",
         messages=prompt,
     )
     answer = json.loads(answer.choices[0].message.content)
