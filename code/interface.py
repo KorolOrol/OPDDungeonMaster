@@ -2,8 +2,12 @@ import gradio as gr
 import json
 from backend import *
 
-with open("code\prompts.txt", 'r', encoding='utf-8') as f:
-    prompts = json.load(f)
+try:
+    with open("code\prompts.txt", 'r', encoding='utf-8') as f:
+        prompts = json.load(f)
+except:
+    with open("prompts.txt", 'r', encoding='utf-8') as f:
+        prompts = json.load(f)
 
 conversation = [{"role": "system", "content": prompts["story"]}]
 
@@ -188,5 +192,5 @@ with gr.Blocks() as webui:
     chat.undo_btn.click(chat_undo, inputs=chat.chatbot)
     chat.clear_btn.click(chat_clear)
     chat.chatbot.change(update_journal, outputs=[items, characters, locations, quests], trigger_mode="always_last")
-webui.launch()
+webui.launch(inbrowser=True, show_error=True)
     
