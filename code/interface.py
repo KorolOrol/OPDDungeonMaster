@@ -177,7 +177,7 @@ with gr.Blocks() as webui:
 
     def chat_clear():
         conversation.clear()
-        conversation.append(prompts["story"])
+        conversation = [{"role": "system", "content": prompts["story"]}]
         journal["items"].clear()
         journal["characters"].clear()
         journal["locations"].clear()

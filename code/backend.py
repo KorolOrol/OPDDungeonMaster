@@ -5,8 +5,8 @@ import re
 
 client = OpenAI(api_key="sk-R27zNuoLjUuzhLMCEcA9FdCfC9A64eD096E511B8D27a44Ce", base_url="https://neuroapi.host/v1")
 
-max_response_tokens = 2048
-token_limit = 16000
+max_response_tokens = 1024
+token_limit = 4096
 
 # Count tokens
 def num_tokens_from_messages(messages):
@@ -59,7 +59,7 @@ def response(message, conversation, journal):
         conv_history_tokens = num_tokens_from_messages(conversation)
 
     answer = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         messages=conversation,
         stream=True,
         max_tokens=max_response_tokens
@@ -84,7 +84,7 @@ def analyze(prompts, conversation, item=None, character=None, location=None, que
         prompt = [{"role": "system", "content": prompts["quest"]}] + \
                  [{"role": "system", "content": message["content"]} for message in conversation[-2:]]
     answer = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-3.5-turbo-1106",
         messages=prompt,
     )
     answer = answer.choices[0].message.content
