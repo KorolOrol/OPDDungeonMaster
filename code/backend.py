@@ -3,7 +3,7 @@ import tiktoken
 import json
 import re
 
-client = OpenAI(api_key="sk-R27zNuoLjUuzhLMCEcA9FdCfC9A64eD096E511B8D27a44Ce", base_url="https://neuroapi.host/v1")
+client = OpenAI(api_key="sk-Ga91w2zRczR321Gj7a3c2235720b48EfAeFdC4Cb41537463", base_url="https://neuroapi.host/v1")
 
 max_response_tokens = 1024
 token_limit = 4096
